@@ -42,6 +42,13 @@
 ;; }
 
 (component
+    (core module $root
+        (memory $memory 17)
+        (export "memory" (memory $memory))
+    )
+    (core instance $root (instantiate $root))
+    (alias core export $root "memory" (core memory $M))
+
     ;; wasi:io/error@0.2.0
     (import "wasi:io/error@0.2.0" (instance $error
         ;; resource
@@ -65,12 +72,12 @@
         )
     ))
     (alias export $streams "output-stream" (type $output-stream))
-    ;; (core func $core_func_output-stream.blocking-write-and-flush
-    ;;     (canon lower ())
-    ;; )
-    ;; (core instance $core_instance.streams
-    ;;     (export "output-stream.blocking-write-and-flush" (func $core_func_output-stream.blocking-write-and-flush))
-    ;; )
+    (core func $core_func.output-stream.blocking-write-and-flush
+        (canon lower (func $streams "[method]output-stream.blocking-write-and-flush") (memory $M))
+    )
+    (core instance $core_instance.streams
+        (export "[method]output-stream.blocking-write-and-flush" (func $core_func.output-stream.blocking-write-and-flush))
+    )
 
     ;; wasi:cli/stdout@0.2.0
     (import "wasi:cli/stdout@0.2.0" (instance $stdout
