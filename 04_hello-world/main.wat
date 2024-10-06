@@ -59,25 +59,57 @@
     ))
     (alias export $streams "output-stream" (type $output-stream))
 
+    (import "wasi:cli/stdout@0.2.0" (instance $stdout
+        (export "get-stdout" (func (result (own $output-stream))))
+    ))
+    ;; (alias export $stdout "get-stdout" (func $get-stdout))
+
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+    ;; (func $example-using-stdout (result i32)
+    ;;     (import "wasi:cli/stdout@0.2.0" "get-stdout" (func (result (own $output-stream))))
+    ;; )
+;; 
+    ;; (func $example-using-stdout_lifted (result (own $output-stream))
+    ;;     (canon lift $example-using-stdout)
+    ;; )
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    (core func $core_func_get-stdout
+        (canon lower (func $stdout "get-stdout"))
+    )
+    (core instance $core_instance_stdout
+        (export "get-stdout" (func $core_func_get-stdout))
+    )
+
     (core module $core_module
+        (import "wasi:cli/stdout@0.2.0" "get-stdout"
+            (func $get-stdout (result i32))
+        )
+        ;;;;;;;;;;;;;;;;;;;;;;;
         (func (export "main") ((; as a ;)result i32)
             (i32.const 0)
         )
+        (func (export "example-using-stdout") (result i32)
+            call $get-stdout
+        )
     )
-    (core instance $core_instance (instantiate $core_module))
-
-    (func $main-lifted ((; as a ;)result (result)) (
-        canon lift (core func $core_instance "main")
+    (core instance $core_instance (instantiate $core_module
+        (with "wasi:cli/stdout@0.2.0" (instance $core_instance_stdout))
     ))
+
+    (func $main-lifted ((; as a ;)result (result))
+        (canon lift (core func $core_instance "main"))
+    )
     
     (component $my_component
-        (import "f" (func $hoge ((; as a ;)result (result))))
+        (import "bridge" (func $hoge ((; as a ;)result (result))))
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         (export "run" (func $hoge))
     )
     (instance $my_instance (instantiate $my_component
-        (with "f" (func $main-lifted))
+        (with "bridge" (func $main-lifted))
     ))
 
     (export "wasi:cli/run@0.2.0" (instance $my_instance))
