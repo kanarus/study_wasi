@@ -90,10 +90,11 @@
         (export "get-stdout" (func $core_func.get-stdout))
     )
 
-    ;; lift core func to component func via core module/instance
+    ;; lift core func to component bridge func via core module/instance
     (core module $core_module
+        ;; dependency
         (import "wasi:cli/stdout@0.2.0" "get-stdout" (func $get-stdout (result i32)))
-        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
         (func (export "main") (result i32)
             ;;call $get-stdout
             (i32.const 0)
@@ -102,20 +103,19 @@
     (core instance $core_instance (instantiate $core_module
         (with "wasi:cli/stdout@0.2.0" (instance $core_instance.stdout))
     ))
-    (func $main (result (result))
+    (func $bridge (result (result))
         (canon lift (core func $core_instance "main"))
     )
     
     ;; construct component with the lifted component func
-    (component $my_component
-        (import "bridge" (func $hoge (result (result))))
-        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        (export "run" (func $hoge))
+    (component $main
+        (import "bridge" (func $run-impl (result (result))))
+        (export "run" (func $run-impl))
     )
-    (instance $my_instance (instantiate $my_component
-        (with "bridge" (func $main))
+    (instance $main (instantiate $main
+        (with "bridge" (func $bridge))
     ))
 
     ;; export instance of expected interface e.g. wasi:cli/run
-    (export "wasi:cli/run@0.2.0" (instance $my_instance))
+    (export "wasi:cli/run@0.2.0" (instance $main))
 )
