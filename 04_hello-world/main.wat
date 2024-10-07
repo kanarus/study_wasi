@@ -92,6 +92,7 @@
 
     ;; lift core func to component bridge func via core module/instance
     (core module $core_module
+        ;; memory
         (import "root" "memory" (memory $memory 17))
 
         ;; dependencies
@@ -99,17 +100,25 @@
             (func $get-stdout (result i32))
         )
         (import "wasi:io/streams@0.2.2" "[method]output-stream.blocking-write-and-flush"
-            (func $output-stream.blocking-write-and-flush (param i32) (param i32) (param i32) (param i32))
+            (func $output-stream.blocking-write-and-flush (param i32 i32 i32 i32))
         )
 
         ;; read-only data
-        (data $message ((; at ;)i32.const 0) "Hello, world!")
+        (data $message (i32.const 0) "Hello, world!\n")
 
         ;; entrypoint
         (func (export "main") (result i32)
-            ;;;;;;;;;;;;;;;;;;; |
-            call $get-stdout ;; | {file-descripter: i32}
+            (local $stdout i32)
+            (local.set $stdout (call $get-stdout))
 
+            (call $output-stream.blocking-write-and-flush
+                (local.get $stdout)
+                (i32.const 0)
+                (i32.const 14)
+                (i32.const 16)
+            )
+
+            (i32.const 0)
         )
     )
     (core instance $core_instance (instantiate $core_module
